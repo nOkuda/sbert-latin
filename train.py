@@ -25,7 +25,7 @@ def _main():
     initial_seeds = rng.integers(np.iinfo(np.int64).max, size=10)
     outdir = Path(__file__).parent.resolve() / 'output'
     labelled_examples = get_labelled_examples()
-    train_model(initial_seeds[0], labelled_examples, outdir)
+    train_model(initial_seeds[0], labelled_examples, outdir, epochs=150)
 
 
 @dataclass
@@ -82,7 +82,7 @@ def get_labelled_examples():
 def train_model(initial_seed,
                 labelled_examples,
                 outdir,
-                epochs=150,
+                epochs=5,
                 batch_size=8):
     train_data, dev_data, test_data = split_data(labelled_examples,
                                                  random_seed=initial_seed)
@@ -198,6 +198,8 @@ def split_data(examples,
 
 
 def write_data(data: List[LabelledExample], outdir: Path):
+    if not outdir.exists():
+        outdir.mkdir(parents=True)
     outpath = outdir / 'parallels.txt'
     with outpath.open('w', encoding='utf-8') as ofh:
         for example in data:

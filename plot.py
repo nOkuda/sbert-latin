@@ -75,14 +75,11 @@ def read_record(evaldir):
 
 
 def read_mse(evaldir):
-    mses = []
-    for i in range(50):
-        predpath = evaldir / f'predictions_{i:04}.txt'
-        with predpath.open('r', encoding='utf-8') as ifh:
-            values = np.array([[float(a) for a in line.strip().split('\t')]
-                               for line in ifh])
-            mses.append(mean_squared_error(values[:, 0], values[:, 1]))
-    return mses
+    recordpath = evaldir / 'record.txt'
+    with recordpath.open('r', encoding='utf-8') as ifh:
+        # skip header
+        next(ifh)
+        return [float(line.strip().split('\t')[3]) for line in ifh]
 
 
 def windowed_average(datapoints, window_size=5):
