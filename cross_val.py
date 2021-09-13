@@ -50,7 +50,9 @@ def _main():
         train_true = [0 if a.label <= 0.25 else 1 for a in train_data]
         results_true.extend([0 if a.label <= 0.25 else 1 for a in test_data])
         lr = LogisticRegression(dual=False, class_weight='balanced')
-        lr.fit(train_pred, train_true)
+        lr.fit(
+            np.array(train_pred).reshape(-1, 1),
+            np.array(train_true).reshape(-1, 1))
         results_pred.extend(lr.predict(test_pred))
     resultspath = outdir / 'results.txt'
     with resultspath.open('w', encoding='utf-8') as ofh:
