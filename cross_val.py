@@ -57,7 +57,7 @@ def _main():
         for pred, val in zip(results_pred, results_true):
             ofh.write(f'{pred}\t{val}\n')
     results_pred = np.array(results_pred).reshape(-1, 1)
-    mcc = matthews_corrcoef(results_pred, results_true)
+    mcc = matthews_corrcoef(results_true, results_pred)
     print(mcc)
     with open(str(outdir / 'mcc.txt'), 'w', encoding='utf-8') as ofh:
         ofh.write(f'{mcc}\n')
