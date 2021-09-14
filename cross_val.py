@@ -61,7 +61,7 @@ def _main():
     print(mcc)
     with open(str(outdir / 'mcc.txt'), 'w', encoding='utf-8') as ofh:
         ofh.write(f'{mcc}\n')
-    conf_mat = confusion_matrix(results_pred, results_true)
+    conf_mat = confusion_matrix(results_true, results_pred)
     categories = ['meaningless', 'meaningful']
     identifier = 'sbert_latin'
     modelname = 'weighted_logistic_regression'
