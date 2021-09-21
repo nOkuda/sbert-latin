@@ -2,7 +2,12 @@
 
 Modified from https://github.com/tensorflow/tensor2tensor/blob/
 0dd16b9488aa0ae0bf873bd591d8f1b4b399f30f/tensor2tensor/data_generators/
-text_encoder.py to work without tensorflow dependency
+text_encoder.py. This version eliminates tensorflow dependency by removing code
+not used by Latin BERT and by calling standard Python functions instead of
+special tensorflow functions.
+
+Original license: Apache License 2.0
+Original copyright: 2021 The Tensor2Tensor Authors
 """
 import os.path
 import re

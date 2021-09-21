@@ -9,12 +9,12 @@ import transformers
 from fuzzywuzzy import fuzz
 from scipy.stats import pearsonr, spearmanr
 from sklearn.metrics import mean_squared_error
-from torch.utils.data import DataLoader, RandomSampler, SequentialSampler
+from torch.utils.data import DataLoader, SequentialSampler
 from tqdm.autonotebook import trange
 
 from sbert_latin.data import get_aen_luc_benchmark
 from sbert_latin.reader import build_tagkeeper
-from sbert_latin.sbertlatin import CosineSimilarityLoss, SBertLatin
+from sbert_latin.sbertlatin import SBertLatin
 from sbert_latin.tf_text_encoder import SubwordTextEncoder
 from sbert_latin.tokenize import LatinTokenizer, LatinWordTokenizer
 
@@ -23,9 +23,8 @@ def _main():
     RANDOM_SEED = 12345
     rng = np.random.default_rng(RANDOM_SEED)
     initial_seeds = rng.integers(np.iinfo(np.int64).max, size=10)
-    outdir = Path(__file__).parent.resolve() / 'output'
     labelled_examples = get_labelled_examples()
-    train_model(initial_seeds[0], labelled_examples, outdir, epochs=150)
+    train_model(initial_seeds[0], labelled_examples)
 
 
 @dataclass
@@ -78,79 +77,21 @@ def get_labelled_examples():
     return results
 
 
-def train_model(initial_seed,
-                labelled_examples,
-                outdir,
-                epochs=5,
-                batch_size=8):
+def train_model(initial_seed, labelled_examples, epochs=5, batch_size=8):
     train_data, dev_data, test_data = split_data(labelled_examples,
                                                  random_seed=initial_seed)
-    train_eval_dir = outdir / f'{initial_seed}' / 'train_eval'
-    dev_eval_dir = outdir / f'{initial_seed}' / 'dev_eval'
-    test_eval_dir = outdir / f'{initial_seed}' / 'test_eval'
-    write_data(train_data, train_eval_dir)
-    write_data(dev_data, dev_eval_dir)
-    write_data(test_data, test_eval_dir)
-    torch.manual_seed(int(initial_seed))
-    generator = torch.Generator()
-    generator = generator.manual_seed(int(initial_seed))
-    dataloader = DataLoader(
-        train_data,
-        # need to keep batch sizes small enough to fit into GPU
-        batch_size=batch_size,
-        sampler=RandomSampler(train_data, generator=generator),
-        collate_fn=collate)
-    steps_per_epoch = math.ceil(len(train_data) / batch_size)
     device = torch.device('cuda')
     model = SBertLatin(bertPath='latin-bert/models/latin_bert/')
     model.to(device)
-    loss_model = CosineSimilarityLoss(model)
-    loss_model.to(device)
-    optimizer = get_optimizer(loss_model)
-    max_grad_norm = 1
-    best_score = -999999999
-    best_epoch = -1
-    for epoch in trange(epochs, desc='Epoch'):
-        loss_model.zero_grad()
-        loss_model.train()
-        data_iter = iter(dataloader)
-        training_log = trange(steps_per_epoch, desc='Training', smoothing=0.05)
-        training_log.write(f'#### {epoch}')
-        for _ in training_log:
-            try:
-                features, labels = next(data_iter)
-            except StopIteration:
-                continue
-            optimizer.zero_grad()
-            loss_value = loss_model(features, labels)
-            loss_value.backward()
-            torch.nn.utils.clip_grad_norm_(loss_model.parameters(),
-                                           max_grad_norm)
-            optimizer.step()
-        train_values = evaluate(model, train_data, batch_size, epoch,
-                                train_eval_dir)
-        train_score = train_values['spearman']
-        training_log.write(f'Training data score: {train_score}')
-        dev_values = evaluate(model, dev_data, batch_size, epoch, dev_eval_dir)
-        dev_score = dev_values['spearman']
-        training_log.write(f'Development data score: {dev_score}')
-        test_values = evaluate(model, test_data, batch_size, epoch,
-                               test_eval_dir)
-        test_score = test_values['spearman']
-        training_log.write(f'Test data score: {test_score}')
-        if best_score < dev_score:
-            best_score = dev_score
-            best_epoch = epoch
-            training_log.write(f'Best epoch so far: {best_epoch}')
-            model_path = outdir / f'{initial_seed}' / 'best_model'
-            model.save_embedder(str(model_path))
-        if epoch % 10 == 0:
-            training_log.write(f'Saving current model (epoch {epoch})')
-            model_path = outdir / f'{initial_seed}' / 'checkpoint'
-            model.save_embedder(str(model_path))
-    model_path = outdir / f'{initial_seed}' / 'final_model'
-    model.save_embedder(str(model_path))
-    print(f'Best epoch: {best_epoch}')
+    train_values = evaluate(model, train_data, batch_size)
+    train_score = train_values['spearman']
+    dev_values = evaluate(model, dev_data, batch_size)
+    dev_score = dev_values['spearman']
+    test_values = evaluate(model, test_data, batch_size)
+    test_score = test_values['spearman']
+    print('Train score:', train_score)
+    print('Dev score:', dev_score)
+    print('Test score:', test_score)
     return model
 
 
@@ -262,10 +203,8 @@ def collate_helper(batch: List[LabelledExample], ind: int):
     return batch_input_ids, batch_attention_masks, batch_transforms
 
 
-def evaluate(model, data, batch_size, epoch, outdir):
+def evaluate(model, data, batch_size):
     results = {}
-    if not outdir.exists():
-        outdir.mkdir(parents=True)
     expected_iters = math.ceil(len(data) / batch_size)
     dataloader = DataLoader(data,
                             batch_size=batch_size,
@@ -275,9 +214,7 @@ def evaluate(model, data, batch_size, epoch, outdir):
     true_labels = []
     predictions = []
     with torch.no_grad():
-        for _ in trange(expected_iters,
-                        desc=f'Evaluation ({str(outdir)})',
-                        smoothing=0.05):
+        for _ in trange(expected_iters, desc='Evaluation', smoothing=0.05):
             try:
                 features, labels = next(data_iter)
             except StopIteration:
@@ -292,23 +229,9 @@ def evaluate(model, data, batch_size, epoch, outdir):
     pearson_value, _ = pearsonr(predictions, true_labels)
     spearman_value, _ = spearmanr(predictions, true_labels)
     mse_value = mean_squared_error(predictions, true_labels)
-    prevalues = [epoch, pearson_value, spearman_value, mse_value]
-    values = '\t'.join([str(a) for a in prevalues])
     results['pearson'] = pearson_value
     results['spearman'] = spearman_value
     results['mse'] = mse_value
-    recordpath = outdir / 'record.txt'
-    if recordpath.exists():
-        with recordpath.open('a', encoding='utf-8') as ofh:
-            ofh.write(f'{values}\n')
-    else:
-        with recordpath.open('w', encoding='utf-8') as ofh:
-            ofh.write('Epoch\tPearson\tSpearman\tMSE\n')
-            ofh.write(f'{values}\n')
-    predictionspath = outdir / f'predictions_{epoch:04}.txt'
-    with predictionspath.open('w', encoding='utf=8') as ofh:
-        for pred, val in zip(predictions, true_labels):
-            ofh.write(f'{pred}\t{val}\n')
     return results
 
 

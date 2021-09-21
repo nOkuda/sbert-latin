@@ -82,7 +82,7 @@ class LabelledExample:
 
 
 def get_labelled_examples():
-    tess_texts_dir = Path('~/Code/tesserae/texts/la/').expanduser().resolve()
+    tess_texts_dir = Path('data').resolve()
     name_to_filepath = {
         'aeneid': tess_texts_dir / 'vergil.aeneid.tess',
         'lucan': tess_texts_dir / 'lucan.bellum_civile.tess',
@@ -95,9 +95,8 @@ def get_labelled_examples():
     # write_found_sentences(name_to_tagkeeper, benchmark)
     word_tokenizer = LatinWordTokenizer()
     subword_encoder = LatinTokenizer(
-        SubwordTextEncoder(
-            '/home/okuda/Code/latin-bert/models/subword_tokenizer_latin/'
-            'latin.subword.encoder'))
+        SubwordTextEncoder('latin-bert/models/subword_tokenizer_latin/'
+                           'latin.subword.encoder'))
     results = []
     for (aen_tag, luc_tag), values in benchmark.items():
         for ((aen_snip, luc_snip), label) in values:
@@ -140,8 +139,7 @@ def train_model(random_seed,
         collate_fn=collate)
     steps_per_epoch = math.ceil(len(train_data) / batch_size)
     device = torch.device('cuda')
-    model = SBertLatin(
-        bertPath='/home/okuda/Code/latin-bert/models/latin_bert/')
+    model = SBertLatin(bertPath='latin-bert/models/latin_bert/')
     model.to(device)
     loss_model = CosineSimilarityLoss(model)
     loss_model.to(device)

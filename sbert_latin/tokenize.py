@@ -89,6 +89,9 @@ class LatinWordTokenizer:
 
     Heavily based off of ctlk.tokenize.latin.word.WordTokenizer and
     nltk.tokenize.punkt.PunktLanguageVars
+
+    CLTK license: MIT License, (c) 2013 Classical Language Toolkit
+    NLTK license: Apache License 2.0, (c) 2001--2021 NLTK Project
     """
 
     ENCLITICS = ['que', 'n', 'ne', 'ue', 've', 'st']
