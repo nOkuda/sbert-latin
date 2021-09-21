@@ -6,7 +6,7 @@ Code used to train and experiment with Latin SBERT.
 
 Using a Python virtual environment is recommended.
 
-A CUDA-capable GPU is required to run the code as it currently is.
+A CUDA-capable GPU is required to run the current code.
 
 1. Install pytorch with the correct CUDA version for your machine (<https://pytorch.org/get-started/locally/>).
 2. Install other Python dependencies
@@ -35,9 +35,9 @@ Each has a `parallels.txt`, many `predictions_*.txt`, and a `record.txt` file.
 The `parallels.txt` file contains all of the parallels in the data set.
 The text before the first tab is a sentence from the _Aeneid_, the text between the first and second tabs is a sentence from the _Bellum Civile_, and the number following the second tab is the label given to the sentence pair.
 The text after the newline following the number is a sentence for the next entry in the data set.
-The `predictions_*.txt` lists two columns of numbers.
+The `predictions_*.txt` files list two columns of numbers.
 The first column lists the values the model predicted, and the second column lists the true label.
-Each line in `predictions_*.txt` corresponds to the ordered entries in `parallels.txt`.
+Each line in a `predictions_*.txt` file corresponds to the ordered entries in `parallels.txt`.
 The `record.txt` file is tab separated file that collects model performance measurements.
 The first row is a header indicating what the numbers in the associated column measure.
 
@@ -53,7 +53,8 @@ Because the random number seed is set the same as `train.py`, the training, deve
 
 ### Plotting `output` information
 
-Training plots can be generated with `plot.py`.
+Running `plot.py` will generate training plots: one tracking Spearman rank correlation, and one tracking mean squared error loss.
+They will be called `eval_plot.svg` and `loss_plot.svg`, respectively.
 
 ### Running the experiment
 
@@ -69,3 +70,8 @@ There will also be two `.svg` files, one starting with `learnplot` and the other
 Both are confusion matrices aggregated from test set predictions over the folds of the cross validation.
 The one starting with `learnplot` is colored across the rows, highlighting model recall; this is the one used in the dissertation chapter.
 The one starting with `reliabilitplot` is colored across the columns, highlighting model precision.
+
+## Acknowledgments
+
+The most important inspirations for this code were Latin BERT (<https://github.com/dbamman/latin-bert>) and SBERT (<https://github.com/UKPLab/sentence-transformers>).
+Adaptations from CLTK (<https://github.com/cltk/cltk>), NLTK (<https://github.com/nltk/nltk>), and tensor2tensor (<https://github.com/tensorflow/tensor2tensor>) were also crucial in making the code work.
