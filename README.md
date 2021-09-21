@@ -8,19 +8,19 @@ Using a Python virtual environment is recommended.
 
 A CUDA-capable GPU is required to run the current code.
 
-1. Install pytorch with the correct CUDA version for your machine (<https://pytorch.org/get-started/locally/>).
-2. Install other Python dependencies
-   ```
-   pip3 install -r requirements.txt
-   ```
-3. Install CLTK Latin tokenizer models
-   ```
-   python3 -c "from cltk.corpus.utils.importer import CorpusImporter; corpus_importer = CorpusImporter('latin'); corpus_importer.import_corpus('latin_models_cltk')"
-   ```
-4. Download Latin BERT model and subtokenizer as well as .tess files
-   ```
-   ./download.sh
-   ```
+  1. Install pytorch with the correct CUDA version for your machine (<https://pytorch.org/get-started/locally/>). Reported results used 1.9.
+  2. Install other Python dependencies
+     ```
+     pip3 install -r requirements.txt
+     ```
+  3. Install CLTK Latin tokenizer models
+     ```
+     python3 -c "from cltk.corpus.utils.importer import CorpusImporter; corpus_importer = CorpusImporter('latin'); corpus_importer.import_corpus('latin_models_cltk')"
+     ```
+  4. Download Latin BERT model and subtokenizer as well as .tess files
+     ```
+     ./download.sh
+     ```
 
 Note that it is necessary for `pytorch` to be installed before `transformers`, which is a library listed in `requirements.txt`.
 
