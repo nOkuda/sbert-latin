@@ -69,13 +69,15 @@ This will create an `output_cross_val` directory where experiment information is
 The `fold` directory has one subdirectory for each fold of the cross validation.
 Within each subdirectory are a `checkpoint`, `final_model`, `test_eval`, and `train_eval` directory.
 These hold information analogous to the directories under the `output` directory (described above) with the same name.
-In addition the `fold` directory, there are `mcc.txt` and `results.txt`.
-The `mcc.txt` file contains a number indicating the Matthews Correlation Coefficient attained over the cross validation.
-The `results.txt` file contains two columns of 0's and 1's, where the first column is a prediction and the second column is the true label.
-There will also be two `.svg` files, one starting with `learnplot` and the other starting with `reliabilityplot`.
-Both are confusion matrices aggregated from test set predictions over the folds of the cross validation.
-The one starting with `learnplot` is colored across the rows, highlighting model recall; this is the one used in the dissertation chapter.
-The one starting with `reliabilitplot` is colored across the columns, highlighting model precision.
+
+To train and evaluate models on the Latin SBERT output, run `more_cross_val.py` after running `cross_val.py`.
+This will generate a `metrics.txt` file in the `output_cross_val` directory
+This `metrics.txt` file contains information about evaluation measurements on the various models and the tasks they were trained on.
+Also, various `.svg` files displaying confusion matrices will be generated in the directory.
+The `.svg` files are named according to the task name and the model trained on the confusion matrix they display.
+All `.svg` files generated either start with `learnplot` or `reliabilityplot`.
+Files starting with `learnplot` are colored across the rows, highlighting model recall; these are the ones presented in the dissertation chapter.
+Files starting with `reliabilityplot` are colored across the columns, highlighting model precision.
 
 ## Acknowledgments
 

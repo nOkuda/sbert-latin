@@ -3,16 +3,11 @@ from dataclasses import dataclass
 from pathlib import Path
 from typing import List
 
-import matplotlib.pyplot as plt
 import numpy as np
-import sklearn
 import torch
 import transformers
-from fuzzywuzzy import fuzz
 from scipy.stats import pearsonr, spearmanr
-from sklearn.linear_model import LogisticRegression
-from sklearn.metrics import (confusion_matrix, matthews_corrcoef,
-                             mean_squared_error)
+from sklearn.metrics import mean_squared_error
 from sklearn.model_selection import StratifiedKFold
 from torch.utils.data import DataLoader, RandomSampler, SequentialSampler
 from tqdm.autonotebook import trange
@@ -35,37 +30,12 @@ def _main():
                           shuffle=True,
                           random_state=RANDOM_SEED)
     skf_iter = iter(skf.split(X, y))
-    results_pred = []
-    results_true = []
     for k in trange(n_splits, desc='Fold'):
         train_inds, test_inds = next(skf_iter)
         train_data = [labelled_examples[ti] for ti in train_inds]
         test_data = [labelled_examples[ti] for ti in test_inds]
         folddir = outdir / 'fold' / f'{k}'
-        train_pred, test_pred = train_model(RANDOM_SEED,
-                                            train_data,
-                                            test_data,
-                                            folddir,
-                                            epochs=40)
-        train_true = [0 if a.label <= 0.25 else 1 for a in train_data]
-        results_true.extend([0 if a.label <= 0.25 else 1 for a in test_data])
-        lr = LogisticRegression(dual=False, class_weight='balanced')
-        lr.fit(np.array(train_pred).reshape(-1, 1), train_true)
-        results_pred.extend(lr.predict(np.array(test_pred).reshape(-1, 1)))
-    resultspath = outdir / 'results.txt'
-    with resultspath.open('w', encoding='utf-8') as ofh:
-        for pred, val in zip(results_pred, results_true):
-            ofh.write(f'{pred}\t{val}\n')
-    results_pred = np.array(results_pred).reshape(-1, 1)
-    mcc = matthews_corrcoef(results_true, results_pred)
-    print(mcc)
-    with open(str(outdir / 'mcc.txt'), 'w', encoding='utf-8') as ofh:
-        ofh.write(f'{mcc}\n')
-    conf_mat = confusion_matrix(results_true, results_pred)
-    categories = ['meaningless', 'meaningful']
-    identifier = 'sbert_latin'
-    modelname = 'weighted_logistic_regression'
-    save_confusion_matrix(conf_mat, categories, outdir, identifier, modelname)
+        train_model(RANDOM_SEED, train_data, test_data, folddir, epochs=40)
 
 
 @dataclass
@@ -330,73 +300,6 @@ def extract_model_inputs(sentence: str, word_tokenizer: LatinWordTokenizer,
         transform.append(ind)
         input_ids.extend(subword_encoder.convert_tokens_to_ids(toks))
     return np.array(input_ids), np.array(transform)
-
-
-def write_found_sentences(name_to_tagkeeper, benchmark):
-    aen_founds = []
-    luc_founds = []
-    for (aen_tag, luc_tag), values in benchmark.items():
-        for ((aen_snip, luc_snip), label) in values:
-            aen_sent = name_to_tagkeeper['aeneid'].get_sentence(
-                aen_tag, aen_snip)
-            aen_founds.append(
-                (fuzz.ratio(aen_snip, aen_sent), aen_tag, aen_snip, aen_sent))
-            luc_sent = name_to_tagkeeper['lucan'].get_sentence(
-                luc_tag, luc_snip)
-            luc_founds.append(
-                (fuzz.ratio(luc_snip, luc_sent), luc_tag, luc_snip, luc_sent))
-    aen_founds.sort()
-    luc_founds.sort()
-    with open('aen_founds.txt', 'w') as ofh:
-        for found in aen_founds:
-            ofh.write(f'{found}\n')
-    with open('luc_founds.txt', 'w') as ofh:
-        for found in luc_founds:
-            ofh.write(f'{found}\n')
-
-
-def save_confusion_matrix(conf_mat, categories, data_dir, identifier,
-                          modelname):
-    # plotting with axis=1 tells me what the model learned;
-    normalized_conf_mat = sklearn.preprocessing.normalize(conf_mat,
-                                                          axis=1,
-                                                          norm='l1')
-    learnname = f'learnplot.{identifier}.confusion.{modelname}.svg'
-    outplotpath = data_dir / learnname
-    plot_confusion_matrix(conf_mat, normalized_conf_mat, categories,
-                          outplotpath)
-    # plotting with axis=0 tells me how reliable the model's predictions are
-    normalized_conf_mat = sklearn.preprocessing.normalize(conf_mat,
-                                                          axis=0,
-                                                          norm='l1')
-    relianame = f'reliabilityplot.{identifier}.confusion.{modelname}.svg'
-    outplotpath = data_dir / relianame
-    plot_confusion_matrix(conf_mat, normalized_conf_mat, categories,
-                          outplotpath)
-
-
-def plot_confusion_matrix(conf_mat, normalized_conf_mat, categories,
-                          outplotpath):
-    fig, ax = plt.subplots()
-    ax.imshow(normalized_conf_mat)
-    ax.set_xticks(np.arange(len(categories)))
-    ax.set_yticks(np.arange(len(categories)))
-    ax.set_xticklabels(categories)
-    ax.set_yticklabels(categories)
-    plt.setp(ax.get_xticklabels(),
-             rotation=45,
-             ha="right",
-             rotation_mode="anchor")
-    for i in range(len(categories)):
-        for j in range(len(categories)):
-            ax.text(j, i, conf_mat[i, j], ha="center", va="center", color="w")
-    ax.set_title('Confusion Matrix')
-    ax.set_xlabel('prediction')
-    ax.set_ylabel('benchmark label')
-    fig.tight_layout()
-    plt.savefig(str(outplotpath))
-    fig.clear
-    plt.close(fig)
 
 
 if __name__ == '__main__':
