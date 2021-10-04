@@ -13,6 +13,8 @@ from sklearn.metrics import (accuracy_score, confusion_matrix, f1_score,
 from sklearn.neural_network import MLPClassifier
 from sklearn.preprocessing import StandardScaler
 
+RANDOM_SEED = 12345
+
 
 def _main():
     outdir = Path(__file__).parent.resolve() / 'output_cross_val'
@@ -37,17 +39,24 @@ def build_norm_nn():
     return make_pipeline(
         SimpleImputer(missing_values=np.nan, strategy='constant'),
         StandardScaler(with_mean=True),
-        MLPClassifier(hidden_layer_sizes=(50, ), max_iter=200000))
+        MLPClassifier(hidden_layer_sizes=(50, ),
+                      max_iter=200000,
+                      random_state=RANDOM_SEED))
 
 
 def build_bal_nn():
     return make_pipeline(
-        SimpleImputer(missing_values=np.nan, strategy='constant'), SMOTE(),
-        MLPClassifier(hidden_layer_sizes=(50, ), max_iter=200000))
+        SimpleImputer(missing_values=np.nan, strategy='constant'),
+        SMOTE(random_state=RANDOM_SEED),
+        MLPClassifier(hidden_layer_sizes=(50, ),
+                      max_iter=200000,
+                      random_state=RANDOM_SEED))
 
 
 def build_bal_lr():
-    return LogisticRegression(dual=False, class_weight='balanced')
+    return LogisticRegression(dual=False,
+                              class_weight='balanced',
+                              random_state=RANDOM_SEED)
 
 
 class RatingsTask:
