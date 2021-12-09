@@ -79,6 +79,18 @@ All `.svg` files generated either start with `learnplot` or `reliabilityplot`.
 Files starting with `learnplot` are colored across the rows, highlighting model recall; these are the ones presented in the dissertation chapter.
 Files starting with `reliabilityplot` are colored across the columns, highlighting model precision.
 
+### Other Variations
+
+In addition to the original Latin SBERT training and experiment code,
+there are a few variations with results that didn't go anywhere.
+
+The `mini_*.py` scripts printed out performance data at the end of every batch instead of at the end of every epoch.
+
+The `balanced_*.py` scripts used weighted resampling to keep the classes a little more even during training.
+Weightings were set so that each class had equal probability of appearing in each batch.
+Although the `balanced_mini_*.py` series of scripts suggested that weighted resampling was helping,
+the `balanced_*cross_val.py` scripts indicated slightly worse performance than the original experiments of this repo.
+
 ## Acknowledgments
 
 The most important inspirations for this code were Latin BERT (<https://github.com/dbamman/latin-bert>) and SBERT (<https://github.com/UKPLab/sentence-transformers>).

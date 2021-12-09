@@ -1,4 +1,5 @@
 import math
+from collections import Counter
 from dataclasses import dataclass
 from pathlib import Path
 from typing import List
@@ -9,7 +10,8 @@ import transformers
 from scipy.stats import pearsonr, spearmanr
 from sklearn.metrics import mean_squared_error
 from sklearn.model_selection import StratifiedKFold
-from torch.utils.data import DataLoader, RandomSampler, SequentialSampler
+from torch.utils.data import (DataLoader, SequentialSampler,
+                              WeightedRandomSampler)
 from tqdm.autonotebook import trange
 
 from sbert_latin.data import get_aen_luc_benchmark
@@ -21,7 +23,7 @@ from sbert_latin.tokenize import LatinTokenizer, LatinWordTokenizer
 
 def _main():
     RANDOM_SEED = 12345
-    outdir = Path(__file__).parent.resolve() / 'output_cross_val'
+    outdir = Path(__file__).parent.resolve() / 'balanced_output_cross_val'
     labelled_examples = get_labelled_examples()
     X = np.arange(len(labelled_examples))
     y = np.array([0 if a.label <= 0.25 else 1 for a in labelled_examples])
@@ -35,7 +37,12 @@ def _main():
         train_data = [labelled_examples[ti] for ti in train_inds]
         test_data = [labelled_examples[ti] for ti in test_inds]
         folddir = outdir / 'fold' / f'{k}'
-        train_model(RANDOM_SEED, train_data, test_data, folddir, epochs=40)
+        train_model(RANDOM_SEED,
+                    train_data,
+                    test_data,
+                    folddir,
+                    batch_size=8,
+                    epochs=40)
 
 
 @dataclass
@@ -101,11 +108,14 @@ def train_model(random_seed,
     torch.manual_seed(int(random_seed))
     generator = torch.Generator()
     generator = generator.manual_seed(int(random_seed))
+    weightings = get_weightings(train_data)
     dataloader = DataLoader(
         train_data,
         # need to keep batch sizes small enough to fit into GPU
         batch_size=batch_size,
-        sampler=RandomSampler(train_data, generator=generator),
+        sampler=WeightedRandomSampler(weightings,
+                                      num_samples=len(train_data),
+                                      generator=generator),
         collate_fn=collate)
     steps_per_epoch = math.ceil(len(train_data) / batch_size)
     device = torch.device('cuda')
@@ -160,6 +170,13 @@ def write_data(data: List[LabelledExample], outdir: Path):
             s0 = example.sentences[0]
             s1 = example.sentences[1]
             ofh.write(f'{s0}\t{s1}\t{example.label}\n')
+
+
+def get_weightings(train_data: List[LabelledExample]) -> np.array:
+    counter = Counter(a.label for a in train_data)
+    fair_share = 1.0 / len(counter)
+    weight = {label: fair_share / count for label, count in counter.items()}
+    return np.array([weight[a.label] for a in train_data])
 
 
 def get_optimizer(loss_model):
