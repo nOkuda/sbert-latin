@@ -62,6 +62,32 @@ class SBertLatin(nn.Sequential):
         self.modules['0'].save_embedder(outpath)
 
 
+class ReinitSBertLatin(nn.Sequential):
+    """Encapsulates BertLatin and pooling to create sentence embedding
+
+    Also re-intializes some of the final layers of BertLatin
+    """
+
+    def __init__(self, bertPath, reinit, mode='token'):
+        bl = BertLatin(bertPath)
+        with torch.no_grad():
+            torch.nn.init.normal_(bl.bert.pooler.dense.weight, std=0.02**2)
+            for layer in bl.bert.encoder.layer[-reinit:]:
+                for component in layer.modules():
+                    if isinstance(component, torch.nn.Linear):
+                        torch.nn.init.normal_(component.weight, std=0.02**2)
+        self.modules = OrderedDict([
+            (str(idx), module)
+            for idx, module in enumerate([bl, Pooling(mode)])
+        ])
+        super().__init__(self.modules)
+        self.mode = mode
+
+    def save_embedder(self, outpath):
+        """Save Bert model to specified outpath"""
+        self.modules['0'].save_embedder(outpath)
+
+
 class CosineSimilarityLoss(nn.Module):
     """Train model to optimize cosine similarity
 

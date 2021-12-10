@@ -82,7 +82,7 @@ Files starting with `reliabilityplot` are colored across the columns, highlighti
 ### Other Variations
 
 In addition to the original Latin SBERT training and experiment code,
-there are a few variations with results that didn't go anywhere.
+Most of these results that didn't go anywhere.
 
 The `mini_*.py` scripts printed out performance data at the end of every batch instead of at the end of every epoch.
 
@@ -90,6 +90,13 @@ The `balanced_*.py` scripts used weighted resampling to keep the classes a littl
 Weightings were set so that each class had equal probability of appearing in each batch.
 Although the `balanced_mini_*.py` series of scripts suggested that weighted resampling was helping,
 the `balanced_*cross_val.py` scripts indicated slightly worse performance than the original experiments of this repo.
+
+The `reinit_*.py` scripts randomly reinitializes varying numbers of final BERT layers.
+Assuming that the first layers are most informative for picking out patterns from the language,
+the final layers could be re-trained during fine-tuning and perhaps lead to better results.
+The idea came from (REVISITING FEW-SAMPLE BERT FINE-TUNING)[https://openreview.net/pdf?id=cO1IH43yUF] (ICLR 2021 poster).
+It's interesting to see how much worse the model gets,
+but this unfortunately did not make the model perform any better.
 
 ## Acknowledgments
 
