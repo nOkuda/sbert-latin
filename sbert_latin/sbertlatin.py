@@ -88,6 +88,52 @@ class ReinitSBertLatin(nn.Sequential):
         self.modules['0'].save_embedder(outpath)
 
 
+class CLSExtractor(nn.Module):
+    """Uses CLS as sentence embedding
+
+    This layer is expected to come directly after a BertLatin layer. Outputs
+    from the BertLatin layer are preserved, and a 'sentence_embedding' entry
+    will be added.
+    """
+
+    def __init__(self, mode: str = 'token'):
+        super().__init__()
+        self.mode = mode
+        self.device = torch.device('cuda')
+
+    def forward(self, bert_outs):
+        output_vectors = []
+        if self.mode == 'token':
+            embeddings = bert_outs['token_embeddings']
+        elif self.mode == 'subtoken':
+            embeddings = bert_outs['last_hidden_state']
+        else:
+            raise ValueError(f'Unknown mode: {self.mode}')
+        mask = torch.zeros_like(embeddings)
+        mask[:, 0, :] = 1
+        sum_embeddings = torch.sum(embeddings * mask, 1)
+        output_vectors.append(sum_embeddings)
+        output_vector = torch.cat(output_vectors, 1)
+        bert_outs['sentence_embedding'] = output_vector.to(self.device)
+        return bert_outs
+
+
+class CLSBertLatin(nn.Sequential):
+    """Encapsulates BertLatin and CLSExtractor to create sentence embedding"""
+
+    def __init__(self, bertPath, mode='token'):
+        self.modules = OrderedDict([
+            (str(idx), module) for idx, module in enumerate(
+                [BertLatin(bertPath), CLSExtractor(mode)])
+        ])
+        super().__init__(self.modules)
+        self.mode = mode
+
+    def save_embedder(self, outpath):
+        """Save Bert model to specified outpath"""
+        self.modules['0'].save_embedder(outpath)
+
+
 class CosineSimilarityLoss(nn.Module):
     """Train model to optimize cosine similarity
 
