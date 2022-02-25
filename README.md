@@ -98,6 +98,12 @@ The idea came from (REVISITING FEW-SAMPLE BERT FINE-TUNING)[https://openreview.n
 It's interesting to see how much worse the model gets,
 but this unfortunately did not make the model perform any better.
 
+### Discrepancy Information
+
+In order to see what mistakes Latin SBERT made in its predictions,
+`find_discrepancies.py` plots score discrepancies by rating and
+writes out a `discrepancies.txt` that displays parallels from smallest discrepancy to largest discrepancy.
+
 ## Acknowledgments
 
 The most important inspirations for this code were Latin BERT (<https://github.com/dbamman/latin-bert>) and SBERT (<https://github.com/UKPLab/sentence-transformers>).
